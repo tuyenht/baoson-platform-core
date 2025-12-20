@@ -1,0 +1,63 @@
+# Monorepo root
+node_modules/
+.pnpm-store/
+.turbo/
+.DS_Store
+*.log
+
+# Laravel / PHP
+vendor/
+.phpunit.cache
+.phpunit.result.cache
+.phpactor.json
+Homestead.json
+Homestead.yaml
+/auth.json
+
+# Environment
+.env
+.env.backup
+.env.production
+.env.*.local
+
+# IDE
+/.fleet
+/.idea
+/.nova
+/.vscode
+/.zed
+
+# Build outputs
+dist/
+build/
+*.tsbuildinfo
+
+# Apps
+apps/*/node_modules/
+apps/*/vendor/
+apps/*/public/build/
+apps/*/public/hot/
+apps/*/bootstrap/cache/
+apps/*/storage/**
+!apps/*/storage/.gitignore
+!apps/*/storage/app/.gitignore
+!apps/*/storage/app/public/.gitignore
+apps/*/storage/*.key
+apps/*/storage/pail
+apps/*/.phpunit.cache
+apps/*/.env
+apps/*/.env.backup
+apps/*/.env.production
+
+# Packages
+packages/*/node_modules/
+packages/*/dist/
+packages/*/.turbo/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Backups
+*.bak
+*.bak-*

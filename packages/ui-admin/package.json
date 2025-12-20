@@ -1,0 +1,18 @@
+{
+  "name": "@baoson/ui-admin",
+  "version": "1.0.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "dev": "echo 'UI Admin dev mode - to be implemented'"
+  },
+  "dependencies": {
+    "@baoson/shared-types": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}
+

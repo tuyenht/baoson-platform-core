@@ -1,0 +1,34 @@
+{
+    "name": "baoson-platform-core",
+    "version": "1.0.0",
+    "private": true,
+    "description": "Baoson Platform Core - Monorepo",
+    "scripts": {
+      "dev": "concurrently -n VITE,LARAVEL -c green,cyan \"pnpm dev:control-plane\" \"pnpm cp:serve\"",
+  
+      "dev:control-plane": "pnpm --filter control-plane run dev",
+      "build:control-plane": "pnpm --filter control-plane run build",
+      "typecheck:control-plane": "pnpm --filter control-plane run typecheck",
+  
+      "lint": "pnpm --filter control-plane run lint",
+      "typecheck": "pnpm typecheck:control-plane",
+  
+      "cp:serve": "cd apps/control-plane && php artisan serve",
+      "cp:test": "cd apps/control-plane && php artisan test",
+      "cp:migrate": "cd apps/control-plane && php artisan migrate",
+      "cp:seed": "cd apps/control-plane && php artisan db:seed",
+  
+      "test": "pnpm cp:test",
+      "build": "pnpm build:control-plane",
+  
+      "install:all": "pnpm install"
+    },
+    "devDependencies": {
+      "concurrently": "^9.2.1"
+    },
+    "engines": {
+      "node": ">=18.0.0",
+      "pnpm": ">=8.0.0"
+    }
+}
+  

@@ -1,0 +1,10 @@
+@import 'tailwindcss';
+@source "../views";
+@source "../js";
+@source "../vue";
+
+/* Add these for TypeScript/React */
+@source "../**/*.ts";
+@source "../**/*.tsx";
+
+@plugin '@tailwindcss/forms';
