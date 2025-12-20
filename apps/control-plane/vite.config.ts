@@ -26,5 +26,18 @@ export default defineConfig({
             '@': path.resolve(__dirname, './resources/js'),
         },
     },
+    build: {
+        // Suppress warnings about public folder assets (fonts) not resolving at build time
+        // These are served directly by Laravel/web server, not processed by Vite
+        rollupOptions: {
+            onwarn(warning, warn) {
+                // Ignore warnings about public folder assets
+                if (warning.message.includes("didn't resolve at build time")) {
+                    return;
+                }
+                warn(warning);
+            },
+        },
+    },
 });
 

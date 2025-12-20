@@ -18,11 +18,11 @@ export default function LocaleSync() {
     // After that, user's manual changes take precedence
     useEffect(() => {
         if (!hasSyncedRef.current && pageLocale && pageLocale !== currentLocale) {
-            console.log('[LocaleSync] Initial sync from server locale:', pageLocale);
             syncLocale(pageLocale as 'en' | 'vi' | 'ja' | 'zh');
             hasSyncedRef.current = true;
         }
-    }, []); // Empty deps - only run once on mount
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // Intentionally empty deps - only sync once on mount
 
     return null; // This component doesn't render anything
 }

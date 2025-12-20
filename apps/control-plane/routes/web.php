@@ -52,11 +52,11 @@ Route::prefix($adminPrefix)
         });
 
         Route::middleware('auth')->group(function () {
-            Route::get('/', function () {
-                return Inertia::render('Dashboard');
+    Route::get('/', function () {
+        return Inertia::render('Dashboard');
             })->name('dashboard');
 
             Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
                 ->name('logout');
         });
-    });
+});

@@ -1,3 +1,6 @@
+/* Import Inter Font - Self-hosted */
+@import './fonts.css';
+
 @import 'tailwindcss';
 @source "../views";
 @source "../js";
@@ -20,7 +23,8 @@ html, body {
     margin: 0;
     padding: 0;
     overflow-x: hidden;
-    font-family: 'Inter', sans-serif;
+    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-synthesis: none; /* Prevent browser from synthesizing bold/italic */
 }
 
 body {
@@ -62,8 +66,8 @@ input[type="password"] {
 
 /* Override h2 title to match code mẫu */
 h2.text-3xl {
-  font-size: 26.25px !important; /* Match code mẫu: 26.25px instead of 30px */
-  line-height: 31.5px !important;
+  font-size: 22px !important; /* Reduced to 22px for smaller title */
+  line-height: 26px !important; /* Adjusted proportionally (1.18 ratio) */
   font-weight: 800 !important; /* extrabold */
 }
 

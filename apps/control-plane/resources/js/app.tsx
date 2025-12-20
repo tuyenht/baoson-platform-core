@@ -6,13 +6,13 @@ import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { LocaleProvider } from './contexts/LocaleContext';
 import LocaleSync from './components/LocaleSync';
 import type { PageProps } from './types';
-import { ComponentType, ReactNode } from 'react';
+import { ComponentType } from 'react';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
 // Wrapper component to include LocaleSync inside Inertia context
-function withLocaleSync(Component: ComponentType<any>) {
-    return function WrappedComponent(props: any) {
+function withLocaleSync<P extends Record<string, unknown>>(Component: ComponentType<P>) {
+    return function WrappedComponent(props: P) {
         return (
             <>
                 <LocaleSync />
@@ -31,8 +31,9 @@ createInertiaApp({
         );
         
         // Wrap page component with LocaleSync
-        return page.then((module: any) => {
-            const Component = module.default;
+        return page.then((module: unknown) => {
+            const typedModule = module as { default: ComponentType<PageProps> };
+            const Component = typedModule.default;
             return {
                 default: withLocaleSync(Component),
             };
@@ -56,4 +57,3 @@ createInertiaApp({
         color: '#4B5563',
     },
 });
-

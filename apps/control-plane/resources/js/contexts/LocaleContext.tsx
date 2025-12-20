@@ -41,15 +41,23 @@ export function LocaleProvider({
     // Sync with server locale ONLY on initial load or navigation (not when user manually changes)
     useEffect(() => {
         if (!userChangedLocaleRef.current && initialLocale && initialLocale !== locale) {
-            console.log('[LocaleContext] Syncing from server locale:', initialLocale);
             setLocaleState(initialLocale as SupportedLocale);
         }
-    }, [initialLocale]); // Only depend on initialLocale, not locale
+    }, [initialLocale, locale]);
 
-    // Update document lang attribute
+    // Update document lang attribute with proper format for CSS selectors
     useEffect(() => {
         if (typeof document !== 'undefined') {
-            document.documentElement.lang = locale;
+            // Map locale codes to proper HTML lang attribute values
+            // CSS selectors use: html:lang(zh-CN), html:lang(zh-Hans), html:lang(zh) for Chinese
+            // and html:lang(ja) for Japanese
+            const langMap: Record<SupportedLocale, string> = {
+                'en': 'en',
+                'vi': 'vi',
+                'ja': 'ja',
+                'zh': 'zh-CN', // Use zh-CN for Simplified Chinese (matches CSS selector)
+            };
+            document.documentElement.lang = langMap[locale] || locale;
         }
     }, [locale]);
 
@@ -62,18 +70,16 @@ export function LocaleProvider({
         };
     }, []);
 
-    // setLocale function - NO flushSync, just normal setState
+    // setLocale function - instant UI update, background server save
     const setLocale = (newLocale: SupportedLocale) => {
         if (newLocale === locale) {
             return;
         }
 
-        console.log('[LocaleContext] User setting locale from', locale, 'to', newLocale);
-        
         // Mark that user has manually changed locale
         userChangedLocaleRef.current = true;
 
-        // Normal setState - React will re-render automatically
+        // Instant UI update
         setLocaleState(newLocale);
 
         // Clear previous timer if exists
@@ -109,11 +115,6 @@ export function LocaleProvider({
         setLocale,
         syncLocale,
     };
-
-    // Debug: log when context value changes
-    useEffect(() => {
-        console.log('[LocaleContext] Context value changed, locale:', locale);
-    }, [locale]);
 
     return (
         <LocaleContext.Provider value={contextValue}>
