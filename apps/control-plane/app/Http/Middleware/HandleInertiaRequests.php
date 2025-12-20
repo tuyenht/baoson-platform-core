@@ -35,14 +35,27 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $adminRouteName = config('admin.route_name', 'bsadm.');
+        $currentLocale = app()->getLocale();
+
         return [
             ...parent::share($request),
             'appName' => config('app.name'),
             'csrfToken' => csrf_token(),
+            'locale' => $currentLocale,
             'admin' => [
                 'prefix' => config('admin.prefix'),
                 'routes' => [
-                    'dashboard' => config('admin.route_name').'dashboard',
+                    'dashboard' => $adminRouteName.'dashboard',
+                    'login' => $adminRouteName.'login',
+                    'loginStore' => $adminRouteName.'login.store',
+                    'logout' => $adminRouteName.'logout',
+                    'passwordRequest' => $adminRouteName.'password.request',
+                    'passwordEmail' => $adminRouteName.'password.email',
+                    'passwordReset' => $adminRouteName.'password.reset',
+                    'passwordUpdate' => $adminRouteName.'password.update',
+                    'oauthRedirect' => $adminRouteName.'oauth.redirect',
+                    'localeStore' => 'locale.store',
                 ],
             ],
             'auth' => [
@@ -52,6 +65,15 @@ class HandleInertiaRequests extends Middleware
                     'email' => $request->user()->email,
                     'email_verified_at' => $request->user()->email_verified_at?->toIso8601String(),
                 ] : null,
+            ],
+            'flash' => [
+                'status' => session('status'),
+                'error' => session('error'),
+            ],
+            'social' => [
+                'googleEnabled' => (bool) config('services.google.enabled', false),
+                'facebookEnabled' => (bool) config('services.facebook.enabled', false),
+                'socialiteInstalled' => class_exists(\Laravel\Socialite\Facades\Socialite::class),
             ],
         ];
     }

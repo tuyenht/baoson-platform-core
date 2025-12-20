@@ -8,8 +8,9 @@ interface AppShellProps {
 }
 
 export default function AppShell({ children, title = 'Dashboard' }: AppShellProps) {
-    const { admin } = usePage<PageProps>().props;
+    const { admin, auth } = usePage<PageProps>().props;
     const dashboardRouteName = admin?.routes?.dashboard ?? 'bsadm.dashboard';
+    const logoutRouteName = admin?.routes?.logout ?? 'bsadm.logout';
 
     return (
         <>
@@ -25,7 +26,21 @@ export default function AppShell({ children, title = 'Dashboard' }: AppShellProp
                                 </h1>
                             </div>
                             <nav className="flex items-center space-x-4">
-                                {/* Navigation items placeholder */}
+                                {auth?.user ? (
+                                    <>
+                                        <span className="text-sm text-gray-600">
+                                            {auth.user.name}
+                                        </span>
+                                        <Link
+                                            href={route(logoutRouteName)}
+                                            method="post"
+                                            as="button"
+                                            className="text-sm font-medium text-gray-900 hover:underline"
+                                        >
+                                            Đăng xuất
+                                        </Link>
+                                    </>
+                                ) : null}
                             </nav>
                         </div>
                     </div>

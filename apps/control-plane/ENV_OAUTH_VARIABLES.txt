@@ -1,0 +1,30 @@
+# Copy and paste these variables into your .env file
+
+# Admin Configuration
+ADMIN_PREFIX=bsadm
+ADMIN_ROUTE_NAME=bsadm.
+
+# Google OAuth Configuration
+# Get credentials from: https://console.cloud.google.com/apis/credentials
+# Note: GOOGLE_REDIRECT_URL is auto-generated from APP_URL if not set
+# Format: {APP_URL}/{ADMIN_PREFIX}/oauth/google/callback
+AUTH_GOOGLE_ENABLED=true
+GOOGLE_CLIENT_ID=your-google-client-id-here
+GOOGLE_CLIENT_SECRET=your-google-client-secret-here
+# GOOGLE_REDIRECT_URL will be auto-generated as: {APP_URL}/{ADMIN_PREFIX}/oauth/google/callback
+# Uncomment and set manually if you need a custom redirect URL:
+# GOOGLE_REDIRECT_URL=http://localhost/bsadm/oauth/google/callback
+GOOGLE_STATELESS=false
+
+# Facebook OAuth Configuration
+# Get credentials from: https://developers.facebook.com/apps/
+# Note: FACEBOOK_REDIRECT_URL is auto-generated from APP_URL if not set
+# Format: {APP_URL}/{ADMIN_PREFIX}/oauth/facebook/callback
+AUTH_FACEBOOK_ENABLED=true
+FACEBOOK_CLIENT_ID=your-facebook-app-id-here
+FACEBOOK_CLIENT_SECRET=your-facebook-app-secret-here
+# FACEBOOK_REDIRECT_URL will be auto-generated as: {APP_URL}/{ADMIN_PREFIX}/oauth/facebook/callback
+# Uncomment and set manually if you need a custom redirect URL:
+# FACEBOOK_REDIRECT_URL=http://localhost/bsadm/oauth/facebook/callback
+FACEBOOK_STATELESS=false
+

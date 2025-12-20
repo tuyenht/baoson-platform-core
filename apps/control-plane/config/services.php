@@ -35,4 +35,28 @@ return [
         ],
     ],
 
+    'google' => [
+        'enabled' => (bool) env('AUTH_GOOGLE_ENABLED', true), // Default: enabled
+        'client_id' => env('GOOGLE_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+        // Auto-generate redirect URL from APP_URL if not set in ENV
+        'redirect' => env('GOOGLE_REDIRECT_URL') ?: (
+            rtrim(env('APP_URL', 'http://localhost'), '/') . '/' . 
+            env('ADMIN_PREFIX', 'bsadm') . '/oauth/google/callback'
+        ),
+        'stateless' => (bool) env('GOOGLE_STATELESS', false),
+    ],
+
+    'facebook' => [
+        'enabled' => (bool) env('AUTH_FACEBOOK_ENABLED', true), // Default: enabled
+        'client_id' => env('FACEBOOK_CLIENT_ID'),
+        'client_secret' => env('FACEBOOK_CLIENT_SECRET'),
+        // Auto-generate redirect URL from APP_URL if not set in ENV
+        'redirect' => env('FACEBOOK_REDIRECT_URL') ?: (
+            rtrim(env('APP_URL', 'http://localhost'), '/') . '/' . 
+            env('ADMIN_PREFIX', 'bsadm') . '/oauth/facebook/callback'
+        ),
+        'stateless' => (bool) env('FACEBOOK_STATELESS', false),
+    ],
+
 ];

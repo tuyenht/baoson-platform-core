@@ -21,14 +21,33 @@ export type PageProps<
 > = T & {
     appName?: string;
     csrfToken?: string;
+    locale?: string;
     admin?: {
         prefix: string;
         routes: {
             dashboard: string;
+            login: string;
+            loginStore: string;
+            logout: string;
+            passwordRequest: string;
+            passwordEmail: string;
+            passwordReset: string;
+            passwordUpdate: string;
+            oauthRedirect: string;
+            localeStore: string;
         };
     };
     auth?: {
         user: User | null;
+    };
+    flash?: {
+        status?: string | null;
+        error?: string | null;
+    };
+    social?: {
+        googleEnabled: boolean;
+        facebookEnabled: boolean;
+        socialiteInstalled: boolean;
     };
 };
 
