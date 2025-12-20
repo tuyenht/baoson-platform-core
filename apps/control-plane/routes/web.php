@@ -12,5 +12,5 @@ Route::get('/', function () use ($adminPrefix) {
 Route::prefix($adminPrefix)->group(function () {
     Route::get('/', function () {
         return Inertia::render('Dashboard');
-    })->name('admin.dashboard');
+    })->name(config('admin.route_name').'dashboard');
 });

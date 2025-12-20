@@ -13,6 +13,14 @@ export default defineConfig({
         react(),
         tailwindcss(),
     ],
+    /**
+     * Windows thường gặp case Vite dev server ghi hot URL dạng IPv6 ([::1]),
+     * trong khi server chỉ bind IPv4 (127.0.0.1) => trang trắng vì không load được JS.
+     */
+    server: {
+        host: '127.0.0.1',
+        hmr: { host: '127.0.0.1' },
+    },
     resolve: {
         alias: {
             '@': path.resolve(__dirname, './resources/js'),
