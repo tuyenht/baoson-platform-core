@@ -31,19 +31,20 @@ AUTH_GOOGLE_ENABLED=true
 GOOGLE_CLIENT_ID=your-google-client-id-here
 GOOGLE_CLIENT_SECRET=your-google-client-secret-here
 # GOOGLE_REDIRECT_URL will be auto-generated as: {APP_URL}/{ADMIN_PREFIX}/oauth/google/callback
+# Example (local): http://localhost:8000/bsadm/oauth/google/callback
 # Uncomment and set manually if you need a custom redirect URL:
-# GOOGLE_REDIRECT_URL=http://localhost/bsadm/oauth/google/callback
+# GOOGLE_REDIRECT_URL=http://localhost:8000/bsadm/oauth/google/callback
 GOOGLE_STATELESS=false
 
 # Facebook OAuth Configuration
 # Get credentials from: https://developers.facebook.com/apps/
 # Note: FACEBOOK_REDIRECT_URL is auto-generated from APP_URL if not set
 AUTH_FACEBOOK_ENABLED=true
-FACEBOOK_CLIENT_ID=your-facebook-app-id-here
-FACEBOOK_CLIENT_SECRET=your-facebook-app-secret-here
+FACEBOOK_CLIENT_ID=1165612429111116
+FACEBOOK_CLIENT_SECRET=6c63af4aa5e8a2e42d9fb2406788da69
 # FACEBOOK_REDIRECT_URL will be auto-generated as: {APP_URL}/{ADMIN_PREFIX}/oauth/facebook/callback
 # Uncomment and set manually if you need a custom redirect URL:
-# FACEBOOK_REDIRECT_URL=http://localhost/bsadm/oauth/facebook/callback
+# FACEBOOK_REDIRECT_URL=http://localhost:8000/bsadm/oauth/facebook/callback
 FACEBOOK_STATELESS=false
 "@
 

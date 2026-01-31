@@ -4,9 +4,11 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Support\Audit\Audit;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 
 class OAuthController extends Controller
@@ -31,6 +33,13 @@ class OAuthController extends Controller
 
     public function redirect(Request $request, string $provider)
     {
+        // Rate limit OAuth redirects
+        $key = 'oauth:redirect:'.$request->ip().':'.$provider;
+        if (RateLimiter::tooManyAttempts($key, 10)) {
+            abort(429, 'Too many OAuth redirect attempts. Please try again later.');
+        }
+        RateLimiter::hit($key, 3600); // 1 hour decay
+
         if (! in_array($provider, $this->allowedProviders(), true)) {
             abort(404);
         }
@@ -40,10 +49,19 @@ class OAuthController extends Controller
         }
 
         if (! $this->isSocialiteInstalled()) {
+            Audit::record('oauth.redirect_failed', [
+                'provider' => $provider,
+                'reason' => 'missing_socialite',
+            ], $request, 302);
+
             return redirect()
                 ->route(config('admin.route_name', 'bsadm.').'login')
                 ->with('error', 'Social login chưa được cài (thiếu laravel/socialite).');
         }
+
+        Audit::record('oauth.redirect', [
+            'provider' => $provider,
+        ], $request, 302);
 
         $driver = \Laravel\Socialite\Facades\Socialite::driver($provider);
         $stateless = (bool) config("services.{$provider}.stateless", false);
@@ -57,6 +75,20 @@ class OAuthController extends Controller
 
     public function callback(Request $request, string $provider): RedirectResponse
     {
+        // Rate limit OAuth callbacks
+        $key = 'oauth:callback:'.$request->ip().':'.$provider;
+        if (RateLimiter::tooManyAttempts($key, 10)) {
+            Audit::record('oauth.callback_rate_limited', [
+                'provider' => $provider,
+                'ip' => $request->ip(),
+            ], $request, 429);
+
+            return redirect()
+                ->route(config('admin.route_name', 'bsadm.').'login')
+                ->with('error', 'Too many OAuth attempts. Please try again later.');
+        }
+        RateLimiter::hit($key, 3600); // 1 hour decay
+
         if (! in_array($provider, $this->allowedProviders(), true)) {
             abort(404);
         }
@@ -66,6 +98,11 @@ class OAuthController extends Controller
         }
 
         if (! $this->isSocialiteInstalled()) {
+            Audit::record('oauth.callback_failed', [
+                'provider' => $provider,
+                'reason' => 'missing_socialite',
+            ], $request, 302);
+
             return redirect()
                 ->route(config('admin.route_name', 'bsadm.').'login')
                 ->with('error', 'Social login chưa được cài (thiếu laravel/socialite).');
@@ -82,6 +119,11 @@ class OAuthController extends Controller
             $email = $socialUser->getEmail();
 
             if (! is_string($email) || $email === '') {
+                Audit::record('oauth.callback_failed', [
+                    'provider' => $provider,
+                    'reason' => 'missing_email',
+                ], $request, 302);
+
                 return redirect()
                     ->route(config('admin.route_name', 'bsadm.').'login')
                     ->with('error', 'Không lấy được email từ nhà cung cấp OAuth.');
@@ -110,9 +152,25 @@ class OAuthController extends Controller
             Auth::login($user, remember: true);
             $request->session()->regenerate();
 
+            // Clear rate limit on success
+            RateLimiter::clear($key);
+
+            Audit::record('oauth.callback_success', [
+                'provider' => $provider,
+                'email' => $email,
+                'user_id' => $user->id,
+                'created' => $user->wasRecentlyCreated ?? null,
+            ], $request, 302);
+
             return redirect()->intended(route(config('admin.route_name', 'bsadm.').'dashboard'));
         } catch (\Throwable $e) {
             report($e);
+
+            Audit::record('oauth.callback_failed', [
+                'provider' => $provider,
+                'reason' => 'exception',
+                'exception' => $e::class,
+            ], $request, 302);
 
             return redirect()
                 ->route(config('admin.route_name', 'bsadm.').'login')

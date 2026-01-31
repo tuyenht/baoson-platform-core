@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Support\Audit\Audit;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -29,14 +30,25 @@ class AuthenticatedSessionController extends Controller
             'email' => ['required', 'string', 'email'],
             'password' => ['required', 'string'],
             'remember' => ['sometimes', 'boolean'],
+            'locale' => ['sometimes', 'string'],
         ]);
 
         $this->ensureIsNotRateLimited($request);
 
         $remember = $request->boolean('remember');
+        $credentials = $request->only('email', 'password');
 
-        if (! Auth::attempt($request->only('email', 'password'), $remember)) {
-            RateLimiter::hit($this->throttleKey($request));
+        // PERF: Avoid double user lookup. We retrieve once, then validate credentials.
+        $provider = Auth::getProvider();
+        $user = $provider->retrieveByCredentials($credentials);
+
+        if (! $user || ! $provider->validateCredentials($user, $credentials)) {
+            RateLimiter::hit($this->throttleKey($request), $this->loginDecaySeconds());
+
+            Audit::record('auth.login_failed', [
+                'email' => (string) $request->input('email'),
+                'reason' => 'invalid_credentials',
+            ], $request, 422);
 
             throw ValidationException::withMessages([
                 'email' => __('auth.failed'),
@@ -45,7 +57,26 @@ class AuthenticatedSessionController extends Controller
 
         RateLimiter::clear($this->throttleKey($request));
 
+        // If user has 2FA enabled, redirect to challenge step.
+        if (method_exists($user, 'hasTwoFactorEnabled') && $user->hasTwoFactorEnabled()) {
+            $request->session()->put('2fa.user_id', $user->getAuthIdentifier());
+            $request->session()->put('2fa.remember', $remember);
+            $request->session()->regenerate();
+
+            Audit::record('auth.two_factor_required', [
+                'user_id' => $user->getAuthIdentifier(),
+            ], $request, 302);
+
+            return redirect()->route(config('admin.route_name', 'bsadm.').'two-factor.challenge');
+        }
+
+        Auth::login($user, $remember);
         $request->session()->regenerate();
+
+        Audit::record('auth.login_success', [
+            'user_id' => $user->getAuthIdentifier(),
+            'remember' => $remember,
+        ], $request, 302);
 
         return redirect()->intended(
             route(config('admin.route_name', 'bsadm.').'dashboard')
@@ -54,6 +85,8 @@ class AuthenticatedSessionController extends Controller
 
     public function destroy(Request $request): RedirectResponse
     {
+        Audit::record('auth.logout', [], $request, 302);
+
         Auth::guard('web')->logout();
 
         $request->session()->invalidate();
@@ -69,13 +102,18 @@ class AuthenticatedSessionController extends Controller
     {
         $key = $this->throttleKey($request);
 
-        if (! RateLimiter::tooManyAttempts($key, 5)) {
+        if (! RateLimiter::tooManyAttempts($key, $this->maxLoginAttempts())) {
             return;
         }
 
         event(new Lockout($request));
 
         $seconds = RateLimiter::availableIn($key);
+
+        Audit::record('auth.login_throttled', [
+            'email' => (string) $request->input('email'),
+            'seconds' => $seconds,
+        ], $request, 429);
 
         throw ValidationException::withMessages([
             'email' => trans('auth.throttle', [
@@ -88,6 +126,16 @@ class AuthenticatedSessionController extends Controller
     protected function throttleKey(Request $request): string
     {
         return Str::transliterate(Str::lower($request->input('email')).'|'.$request->ip());
+    }
+
+    protected function maxLoginAttempts(): int
+    {
+        return (int) config('security.login.max_attempts', 5);
+    }
+
+    protected function loginDecaySeconds(): int
+    {
+        return (int) config('security.login.decay_seconds', 60);
     }
 }
 

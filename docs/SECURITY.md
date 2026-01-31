@@ -47,6 +47,44 @@ We will acknowledge receipt within 48 hours and provide a timeline for resolutio
 - Implement rate limiting on login endpoints
 - Use secure session configuration
 - Enable CSRF protection (Laravel default)
+- Enable 2FA (TOTP) for privileged accounts (recommended)
+
+### Project-specific security features (already implemented)
+
+- **RBAC (roles/permissions)**: backend enforcement (middleware `can:` + policies), UI guard (Inertia shared `auth.permissions`).
+  - Docs: `docs/rbac.md`
+- **2FA (TOTP + recovery codes)**: sau bước email+password sẽ chuyển sang OTP challenge nếu user bật 2FA.
+  - Settings: `/bsadm/security/two-factor`
+  - Challenge: `/bsadm/two-factor/challenge`
+- **Server-side password pepper (optional)**:
+  - Env: `AUTH_PASSWORD_PEPPER`
+  - Notes: đổi pepper sẽ làm invalid toàn bộ password hiện có nếu không có chiến lược rotate.
+- **Session/Cache auto-default theo môi trường**:
+  - `APP_ENV` + `REDIS_ENABLED` tự chọn driver (fallback file nếu chưa có Redis).
+  - Tham chiếu: `apps/control-plane/config/session.php`, `apps/control-plane/config/cache.php`
+- **Audit logging (security events)**:
+  - Bảng: `audit_logs` (migration: `apps/control-plane/database/migrations/2025_12_22_000002_create_audit_logs_table.php`)
+  - Ghi event chính: login/logout, OAuth, 2FA enable/confirm/challenge, rate-limit.
+  - Mục tiêu: trace sự cố/auth issue nhanh, phục vụ compliance.
+- **Request correlation id**:
+  - Middleware: `App\Http\Middleware\LogContext` sẽ gắn header `X-Request-Id` + log context (`request_id`, `user_id`, `route`, `ip`).
+  - Khi debug production: lấy `X-Request-Id` từ response và grep log theo id này.
+
+### Scheduled maintenance (recommended)
+- Audit retention:
+  - Configure: `AUDIT_LOG_RETENTION_DAYS`
+  - Command: `php artisan audit:prune`
+  - Scheduler: configured daily in `apps/control-plane/routes/console.php` (requires running Laravel scheduler in production)
+
+- Scheduler setup (production):
+  - Linux (cron): chạy mỗi phút:
+    - `* * * * * cd /path/to/apps/control-plane && php artisan schedule:run >> /dev/null 2>&1`
+  - Windows (Task Scheduler): tạo task chạy mỗi 1 phút:
+    - Program: `php`
+    - Arguments: `artisan schedule:run`
+    - Start in: `D:\baoson-platform-core\apps\control-plane`
+  - Verify:
+    - `php artisan core:doctor` → mục `scheduler.heartbeat` phải “fresh”
 
 ### API Security
 
@@ -64,10 +102,14 @@ Before deploying to production:
 - [ ] Strong `APP_KEY` generated
 - [ ] Database credentials are secure
 - [ ] HTTPS is enabled
+- [ ] `SESSION_SECURE_COOKIE=true` (khi HTTPS)
+- [ ] `AUTH_PASSWORD_PEPPER` được set qua secret manager (nếu dùng pepper)
+- [ ] Bật 2FA cho tài khoản admin/super admin
 - [ ] Dependencies are up to date
 - [ ] Security headers are configured
 - [ ] Rate limiting is enabled
 - [ ] Logging is configured for security events
+- [ ] Audit logs are stored/retained (audit_logs table + retention policy)
 - [ ] Backup strategy is in place
 
 ## Updates

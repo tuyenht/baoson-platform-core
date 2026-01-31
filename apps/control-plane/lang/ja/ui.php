@@ -1,0 +1,26 @@
+<?php
+
+return [
+    // UI translations used by React via generated resources/js/locales/translations.json
+    // Namespace: auth.*
+    'auth' => [
+        'welcome' => 'システムログイン',
+        'email_label' => 'アカウント',
+        'password_label' => 'パスワード',
+        'email_placeholder' => 'your-name@gmail.com',
+        'password_placeholder' => '••••••••',
+        'forgot_password' => 'パスワードを忘れた？',
+        'sign_in' => 'ログイン',
+        'processing' => '処理中...',
+        'or_continue' => 'クイックログイン',
+        'terms' => '規約',
+        'privacy' => 'プライバシー',
+        'login_with_google' => 'Googleでログイン',
+        'login_with_facebook' => 'Facebookでログイン',
+        'google_login_not_enabled' => 'GoogleログインはENVで有効になっていません',
+        'facebook_login_not_enabled' => 'FacebookログインはENVで有効になっていません',
+        'socialite_not_installed' => 'SocialログインはENVで有効になっていますが、サーバーにlaravel/socialiteがインストールされていません。',
+    ],
+];
+
+

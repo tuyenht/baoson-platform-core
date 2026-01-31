@@ -1,0 +1,774 @@
+STEP 5: Menu động theo quyền + Feature Flags
+
+You are a Principal Software Architect + Staff Full-stack Engineer.
+Project: "baoson-platform-core"
+Stack: Laravel 12 + Inertia.js + React + TypeScript. Admin routes are prefixed by /bsadm.
+
+TASK (STEP 5): Dynamic Menu by Permission + Feature Flags
+Goal:
+- Build an admin menu system that is:
+  1) DB-driven (menu items stored in DB for tenant/site customization later)
+  2) Permission-aware (menu visibility filtered by RBAC permissions)
+  3) Feature-flag aware (menu + routes can be hidden/disabled by flags)
+- Must work now for single-tenant baseline, but architecture must support multi-tenant later.
+- Must be fast (cache), consistent (no flicker), and secure (backend is source of truth).
+- Must integrate with STEP 4 RBAC outputs:
+  - auth.shared props contains roles + permissions string[]
+  - <Can> UI guard exists
+  - backend route guards/policies exist
+
+HARD REQUIREMENTS:
+- Do not invent missing files. First scan the repo and output what exists.
+- Keep changes minimal and production-ready.
+- TypeScript strict.
+- No UI flash: menu should be computed server-side and shared to Inertia.
+- Provide clear naming convention for flags and menu keys.
+- Provide migration + seeder + caching + invalidation strategy.
+- Provide verification steps and tests.
+
+PHASE 0 — REPO SCAN (NO CHANGES YET)
+1) Confirm RBAC implementation exists (permissions list, seeder, shared Inertia auth).
+2) Identify:
+   - Inertia shared middleware (HandleInertiaRequests) location
+   - Current layout component used by admin (AppShell / Layout)
+   - Existing menu/sidebar implementation (if any)
+3) Confirm cache driver and config (file/redis). For Windows dev, assume file cache is OK; Redis later.
+
+Output:
+- Existing files (paths)
+- Proposed approach summary (DB menu + cached resolved menu per user)
+- BLOCKERS (if anything missing)
+
+PHASE 1 — DATA MODEL: MENUS + FEATURE FLAGS (BACKEND)
+A) Feature Flags
+- Implement a small feature flag system with DB storage.
+- Table: feature_flags
+  columns:
+    - id
+    - key (unique, string) e.g. "admin.users", "admin.roles", "billing", "site_builder"
+    - enabled (boolean)
+    - scope (string, nullable) default: "global" (future: tenant/site/user)
+    - description (string, nullable)
+    - created_at/updated_at
+- Create model: app/Models/FeatureFlag.php
+- Create service: app/Services/FeatureFlags/FeatureFlagService.php
+  - isEnabled(string $key): bool
+  - allEnabledKeys(): array
+  - warmCache(), clearCache()
+- Cache flags for 60s or configurable; invalidate on update.
+
+B) Menu Items
+- Table: admin_menu_items
+  columns:
+    - id
+    - key (unique) e.g. "dashboard", "users", "roles"
+    - label (string) default English label
+    - icon (string|null) e.g. "LayoutDashboard", "Users"
+    - route_name (string|null) e.g. "admin.dashboard"
+    - url (string|null) optional direct URL (prefer route_name)
+    - parent_id (nullable FK to same table)
+    - sort_order (int)
+    - required_permissions (json nullable) list of permission strings (ANY-of)
+    - required_roles (json nullable) list of role strings (ANY-of)
+    - required_flags (json nullable) list of feature flag keys (ALL must be enabled)
+    - is_enabled (boolean) hard kill switch
+    - created_at/updated_at
+- Create model: app/Models/AdminMenuItem.php with casts for json columns.
+
+C) Seed baseline menu + flags (idempotent)
+- Flags seed at least:
+  - admin.dashboard
+  - admin.users
+  - admin.roles
+  - admin.permissions
+  - admin.settings
+- Menu seed with parent/child structure:
+  - Dashboard
+  - Identity & Access (parent)
+    - Users
+    - Roles
+    - Permissions
+  - Settings
+- Each item must have required_permissions aligned with STEP 4 naming convention.
+- Example:
+  - Users menu requires "admin.users.view" OR "admin.users.list"
+  - Roles menu requires "admin.roles.view"
+  - Settings menu requires "admin.settings.view"
+- Ensure keys are stable and will be used by FE.
+
+PHASE 2 — MENU RESOLUTION ENGINE (BACKEND)
+A) MenuResolver service
+- Create: app/Services/Menu/AdminMenuResolver.php
+- Inputs:
+  - User $user
+- Output:
+  - array tree of menu items: [{key,label,icon,url,children:[...]}]
+- Behavior:
+  - Load menu items (DB) ordered by parent_id/sort_order
+  - Filter:
+    - is_enabled true
+    - feature flags enabled (ALL required_flags)
+    - user must satisfy required_roles (if set) OR required_permissions (if set)
+      - For permissions: ANY-of list (unless we add mode later)
+  - Convert route_name to URL using route(route_name) (must work under /bsadm)
+  - Build tree, remove empty parents
+- Caching:
+  - Cache resolved menu per user ID + permission hash + flag hash
+  - Cache tag strategy if available; fallback to key naming
+  - Provide invalidation method on:
+    - menu updated
+    - feature flags changed
+    - user role/permission changed
+- Ensure no N+1 queries.
+
+B) Inertia shared props
+- In HandleInertiaRequests (or equivalent):
+  - share:
+    - auth.user
+    - auth.roles
+    - auth.permissions
+    - features.enabledFlags (string[])
+    - ui.menu (resolved tree)
+- Menu must be computed server-side and shared to avoid flicker.
+
+C) Route-level Feature Flag Middleware (SECURITY)
+- Implement middleware: app/Http/Middleware/RequireFeatureFlag.php
+  - usage: ->middleware('feature:admin.users')
+  - if disabled: return 404 or 403 (choose 404 to hide surface)
+- Register middleware alias in Kernel.
+- Apply to selected /bsadm routes:
+  - Users routes => feature:admin.users
+  - Roles routes => feature:admin.roles
+- Combine with RBAC middleware: permission still required even if flag enabled.
+
+PHASE 3 — FRONTEND: SIDEBAR + GUARDS (INERTIA + REACT + TS)
+A) Types
+- Create TS types:
+  - resources/js/types/menu.ts
+    - MenuItem { key, label, icon?, url?, children? }
+- Ensure robust typing and no any.
+
+B) Sidebar component
+- Create: resources/js/components/nav/AdminSidebar.tsx
+- Input:
+  - menu: MenuItem[]
+- Render:
+  - nested list
+  - active state by current URL
+  - collapse/expand groups
+- Icon rendering:
+  - Use lucide-react if available; if not, render text-only and leave TODO.
+  - If icon string exists, map to icon component via a dictionary.
+
+C) Layout integration
+- Update admin layout (AppShell) to use props.menu from Inertia page props:
+  - const { ui } = usePage().props as any;
+  - pass ui.menu to AdminSidebar
+- Ensure it works at /bsadm.
+
+D) Client helpers
+- Provide hook:
+  - useFeatureFlag(key): boolean (checks shared enabledFlags set)
+- Keep server-side as source of truth; UI just hides.
+
+PHASE 4 — ADMIN MANAGEMENT UI (MINIMAL)
+- Provide a minimal admin page under /bsadm/settings/features to toggle feature flags.
+- Protect with permission "admin.settings.update" and feature flag "admin.settings".
+- Provide a minimal menu manager page later (optional). For now seed menu in DB only.
+
+PHASE 5 — TESTING + DOCS + VERIFY
+A) Tests
+- Feature tests:
+  - Disabled flag => route returns 404 (or 403) even for super_admin
+  - Enabled flag + permission => route OK
+  - Menu resolver hides items when flag disabled
+- Use sqlite for tests.
+
+B) Docs
+- Add docs/menu-and-flags.md
+  - Menu schema, seeding, resolver, caching, invalidation
+  - How to add a new feature flag
+  - How to protect a route with feature middleware
+  - How to ensure menu and routes stay consistent
+
+DELIVERABLES (MUST OUTPUT)
+1) Exact list of files created/modified with paths.
+2) Full code diffs or full file contents for:
+   - migrations + models + seeders
+   - FeatureFlagService + middleware
+   - AdminMenuResolver + caching
+   - Inertia shared props changes
+   - React sidebar + types + hooks
+   - minimal feature toggles page
+   - docs/menu-and-flags.md
+3) Commands to run:
+   - php artisan migrate
+   - php artisan db:seed
+   - php artisan test (if tests added)
+4) Verification checklist:
+   - Which flags to toggle and expected menu/route behavior
+   - Which user/role should see what
+
+IMPORTANT CONSTRAINTS:
+- Keep admin prefix /bsadm unchanged.
+- Backend is source of truth: route-level checks must exist, not only UI hiding.
+- Avoid overengineering multi-tenant now, but design so we can add tenant/site scopes later.
+- If something is missing/unknown, stop and report it in a "BLOCKERS" section.
+
+Now execute PHASE 0 scan, then proceed through PHASE 1..5 in order, applying changes to the repository.
+
+
+
+STEP 6: Audit Log (Enterprise-grade)
+
+You are acting as an Enterprise Architecture Review Board:
+- Principal Software Architect
+- Staff Backend Engineer (Laravel 12)
+- Security & Compliance Architect
+- DevOps / SRE
+- QA / Audit & Risk Officer
+- Technical Writer
+
+Project: "baoson-platform-core"
+Stack: Laravel 12 + Inertia.js + React + TypeScript
+Admin prefix: /bsadm (NON-NEGOTIABLE)
+
+TASK (STEP 6): ENTERPRISE-GRADE AUDIT LOG SYSTEM
+
+OBJECTIVE
+Design and implement a production-grade Audit Log system that:
+- Records all critical admin and system actions
+- Is immutable, queryable, exportable
+- Integrates cleanly with:
+  - STEP 2: Auth
+  - STEP 4: RBAC / Policies
+  - STEP 5: Feature Flags + Menu
+- Is suitable for SaaS, compliance, and later multi-tenant usage
+- Has minimal performance impact
+- Is extensible (but not overbuilt)
+
+This is NOT simple activity logging.
+This is an AUDIT & COMPLIANCE SYSTEM.
+
+HARD RULES
+- Backend is source of truth.
+- Audit logs MUST be append-only (no update/delete via app).
+- Do NOT log secrets or sensitive payloads (passwords, tokens).
+- Every log entry MUST be traceable to:
+  - who
+  - what
+  - when
+  - where
+  - result (success/failure)
+- Admin prefix remains /bsadm.
+- If any prerequisite from STEP 1–5 is missing, STOP and list BLOCKERS.
+
+SCOPE
+Allowed modifications:
+- apps/control-plane/**
+- docs/**
+- database migrations/seeders
+- middleware, services, listeners, models
+
+Do NOT touch:
+- monorepo tooling unless strictly required
+- unrelated frontend code
+
+────────────────────────────────────────
+PHASE 0 — REPO & CONTEXT SCAN (READ ONLY)
+────────────────────────────────────────
+1) Identify:
+   - User model path
+   - Auth middleware
+   - RBAC implementation (permissions, policies)
+   - Feature flag service
+   - Admin routes under /bsadm
+2) Identify existing logging infrastructure:
+   - Laravel logging channels
+   - Any existing activity/audit logs (if any)
+
+Output:
+- Files found (paths)
+- Assumptions confirmed
+- BLOCKERS (if any)
+
+────────────────────────────────────────
+PHASE 1 — AUDIT LOG DOMAIN MODEL
+────────────────────────────────────────
+A) Database Design (MANDATORY)
+Create table: audit_logs
+
+Columns (minimum required):
+- id (uuid or big integer, justify choice)
+- occurred_at (timestamp, indexed)
+- actor_type (string) e.g. "user", "system"
+- actor_id (nullable)
+- actor_identifier (string) e.g. email or system name
+- action (string) canonical action key
+- target_type (string|null) e.g. "User", "Role"
+- target_id (string|int|null)
+- summary (string) human-readable short description
+- context (json) structured metadata (sanitized)
+- ip_address (string|null)
+- user_agent (string|null)
+- route (string|null)
+- http_method (string|null)
+- status (string) e.g. "success", "denied", "failed"
+- created_at
+
+Rules:
+- No updated_at
+- No soft deletes
+- Indexed for filtering (occurred_at, actor_id, action)
+
+Create:
+- Migration
+- Model: app/Models/AuditLog.php (read-only semantics)
+
+────────────────────────────────────────
+PHASE 2 — AUDIT CAPTURE MECHANISM
+────────────────────────────────────────
+Implement MULTI-LAYER capture (enterprise standard):
+
+A) Service Layer
+- app/Services/Audit/AuditLogger.php
+Methods:
+- log(array $payload)
+- success(...)
+- denied(...)
+- failed(...)
+- system(...)
+
+Ensure:
+- Safe defaults
+- Sanitization helper (strip sensitive keys)
+
+B) Automatic Capture Hooks
+Implement listeners/middleware for:
+1) Auth events:
+   - login success
+   - login failure
+   - logout
+2) Authorization:
+   - permission denied
+   - policy denied
+3) CRUD / Admin actions:
+   - role/permission changes
+   - feature flag changes
+   - menu changes
+4) System actions:
+   - config change
+   - seed/sync commands (if applicable)
+
+Use:
+- Laravel Events / Listeners
+- Policies (after authorize)
+- Middleware for request context
+
+C) Request Context Enrichment
+Centralize extraction of:
+- IP
+- user agent
+- route name
+- HTTP method
+Attach to every audit entry.
+
+────────────────────────────────────────
+PHASE 3 — ACTION & NAMING CONVENTION
+────────────────────────────────────────
+Define canonical audit action keys.
+
+Create:
+- app/Support/AuditActions.php (or Enum)
+
+Convention:
+<domain>.<resource>.<action>
+
+Examples:
+- auth.login.success
+- auth.login.failed
+- admin.users.create
+- admin.users.update
+- admin.roles.assign
+- admin.permissions.sync
+- admin.feature_flags.toggle
+- admin.menu.update
+- system.config.change
+
+Ensure:
+- Consistent with RBAC permission naming
+- Used everywhere (no free-text actions)
+
+────────────────────────────────────────
+PHASE 4 — ADMIN UI (READ-ONLY)
+────────────────────────────────────────
+A) Backend
+- Create controller under /bsadm/audit-logs
+- Protected by permission: admin.audit.view
+- Filters:
+  - date range
+  - actor
+  - action
+  - status
+- Pagination mandatory
+
+B) Frontend (Inertia + React + TS)
+- Page: resources/js/pages/AuditLogs/Index.tsx
+- Table with:
+  - Time
+  - Actor
+  - Action
+  - Target
+  - Status
+- Detail drawer/modal to inspect context JSON (pretty-printed, read-only)
+
+C) Menu Integration
+- Add menu item "Audit Logs"
+- Gated by:
+  - permission: admin.audit.view
+  - feature flag: admin.audit
+
+NO edit/delete UI. View/export only.
+
+────────────────────────────────────────
+PHASE 5 — EXPORT & COMPLIANCE
+────────────────────────────────────────
+A) Export
+- CSV export endpoint (filtered)
+- Permission required: admin.audit.export
+- Rate limited
+
+B) Retention Strategy (DOCUMENTED)
+- Configurable retention days (default: 90)
+- Provide artisan command:
+  php artisan audit:prune --days=90
+- Command must log its own action
+
+────────────────────────────────────────
+PHASE 6 — PERFORMANCE & SAFETY
+────────────────────────────────────────
+- Logging must not block request (use queue if available; fallback sync).
+- Graceful failure: audit failure must not crash business logic.
+- Avoid N+1 queries.
+- Ensure no sensitive fields logged.
+
+────────────────────────────────────────
+PHASE 7 — TESTS & DOCS
+────────────────────────────────────────
+A) Tests
+- Login success creates audit log
+- Permission denied creates audit log
+- Feature flag toggle creates audit log
+- Viewer cannot access audit UI
+
+B) Docs
+Create docs/audit-log.md covering:
+- Purpose
+- Schema
+- Action naming
+- How to log custom actions
+- Compliance notes
+
+────────────────────────────────────────
+DELIVERABLES (MANDATORY)
+────────────────────────────────────────
+1) List of files created/modified (exact paths)
+2) Full code (or diffs) for:
+   - Migration + model
+   - AuditLogger service
+   - Middleware/listeners
+   - Action constants
+   - Controller + routes
+   - React UI page
+   - docs/audit-log.md
+3) Commands to run:
+   - php artisan migrate
+   - php artisan test (if added)
+4) Verification checklist:
+   - Actions to perform
+   - Expected audit log entries
+
+STOP CONDITIONS
+- If RBAC (STEP 4) or Feature Flags (STEP 5) are missing → STOP and report BLOCKERS.
+- If admin auth is missing → STOP and propose minimal scaffold.
+
+Now begin with PHASE 0 scan, then proceed sequentially.
+
+
+STEP 7 (KHUNG): Tenancy + Licensing Skeleton
+
+You are acting as an Enterprise Architecture Council:
+- Principal Software Architect
+- SaaS Platform Architect
+- Security & Licensing Specialist
+- Staff Backend Engineer (Laravel 12)
+- DevOps / SRE
+- QA / Compliance Officer
+
+Project: "baoson-platform-core"
+Stack: Laravel 12 + Inertia + React + TypeScript
+Admin prefix: /bsadm (NON-NEGOTIABLE)
+
+TASK (STEP 7 – FRAMEWORK ONLY):
+TENANCY + LICENSING SKELETON (FOUNDATION, NOT FULL SaaS)
+
+OBJECTIVE
+Design and implement a CLEAN, MINIMAL, EXTENSIBLE skeleton for:
+1) Tenancy (organization / tenant boundary)
+2) Licensing (signed token, expiration, domain binding)
+3) Runtime separation (control-plane vs runtime)
+WITHOUT:
+- Breaking existing core
+- Overengineering full SaaS flows
+- Implementing site builder or billing yet
+
+This step MUST:
+- Prepare the core so later SaaS features snap in cleanly
+- Enforce licensing centrally
+- Allow future “export runtime” architecture
+
+HARD RULES
+- This is a SKELETON only.
+- No billing, no subscription logic yet.
+- No full site builder.
+- Backend is source of truth.
+- Licensing checks MUST be server-side and tamper-resistant.
+- Admin prefix /bsadm remains unchanged.
+- No breaking changes to STEP 1–6.
+
+ALLOWED SCOPE
+- apps/control-plane/**
+- database migrations/seeders
+- middleware, services
+- docs/**
+
+────────────────────────────────────────
+PHASE 0 — CONTEXT & READINESS CHECK
+────────────────────────────────────────
+Verify existence of:
+- Auth (STEP 2)
+- RBAC (STEP 4)
+- Feature flags (STEP 5)
+- Audit log (STEP 6)
+
+If any missing → STOP and list BLOCKERS.
+
+Identify:
+- User model
+- Admin routes (/bsadm)
+- Current app environment separation (dev/prod)
+
+────────────────────────────────────────
+PHASE 1 — TENANCY SKELETON (DATA MODEL)
+────────────────────────────────────────
+A) Tenant Model (FOUNDATION)
+Create table: tenants
+
+Fields:
+- id (uuid preferred)
+- key (unique, string) e.g. "baoson", "client-a"
+- name (string)
+- status (active, suspended)
+- plan (string|null) (placeholder)
+- created_at, updated_at
+
+Create:
+- app/Models/Tenant.php
+
+B) User–Tenant Relationship
+Create pivot:
+- tenant_user
+Fields:
+- tenant_id
+- user_id
+- role (string|null) (placeholder for tenant-scoped roles)
+
+Rules:
+- A user can belong to multiple tenants (future)
+- For now, default user belongs to exactly ONE tenant
+
+C) Tenant Context Resolver
+Create service:
+- app/Services/Tenancy/TenantContext.php
+Responsibilities:
+- Resolve current tenant (for now: from user relation)
+- Provide:
+  - currentTenant()
+  - tenantId()
+- Safe defaults (null if unauthenticated)
+
+NO routing by subdomain yet.
+NO request mutation yet.
+Skeleton only.
+
+────────────────────────────────────────
+PHASE 2 — CONTROL PLANE vs RUNTIME BOUNDARY
+────────────────────────────────────────
+Define clear conceptual boundary:
+
+- Control Plane:
+  - Admin
+  - Users, roles, permissions
+  - Tenants
+  - Licensing
+- Runtime (future):
+  - Public websites
+  - End-user content
+  - Exportable
+
+Create:
+- docs/architecture/control-plane-vs-runtime.md
+Explain:
+- What lives where
+- Why licensing is enforced in control-plane
+- How runtime will verify license later
+
+No runtime code yet.
+
+────────────────────────────────────────
+PHASE 3 — LICENSING SKELETON (CORE VALUE)
+────────────────────────────────────────
+A) License Model
+Create table: licenses
+
+Fields:
+- id (uuid)
+- tenant_id
+- product (string) e.g. "website-saas"
+- license_key (string, unique)
+- issued_at
+- expires_at (nullable)
+- allowed_domains (json nullable)
+- status (active, expired, revoked)
+- metadata (json nullable)
+- created_at
+
+Create:
+- app/Models/License.php
+
+B) Signed License Token
+Create service:
+- app/Services/Licensing/LicenseTokenService.php
+
+Responsibilities:
+- generateToken(License $license)
+- verifyToken(string $token): LicensePayload|false
+
+Requirements:
+- Token must be:
+  - Signed (HMAC or asymmetric)
+  - Tamper-proof
+  - Expiration-aware
+- Use APP_KEY or dedicated LICENSE_SIGNING_KEY (recommended)
+- No JWT library required (simple signed payload OK)
+
+Payload includes:
+- license_id
+- tenant_id
+- product
+- expires_at
+- allowed_domains
+- issued_at
+
+C) License Guard (SERVER SIDE)
+Create middleware:
+- RequireValidLicense
+
+Behavior:
+- Resolve tenant
+- Verify license exists and is valid
+- Deny access if:
+  - expired
+  - revoked
+  - domain mismatch (if domain binding enabled later)
+- For now, apply ONLY to:
+  - future runtime routes (placeholder)
+  - protected SaaS features (feature-flagged)
+
+Do NOT block /bsadm core admin yet.
+Skeleton only.
+
+────────────────────────────────────────
+PHASE 4 — FEATURE FLAG INTEGRATION
+────────────────────────────────────────
+Integrate licensing with Feature Flags:
+- Feature flags may be:
+  - Globally enabled
+  - Disabled if license invalid
+
+Design:
+- FeatureFlagService consults LicenseStatus optionally
+- But DO NOT hard-couple yet
+
+Document integration points.
+
+────────────────────────────────────────
+PHASE 5 — AUDIT INTEGRATION
+────────────────────────────────────────
+Ensure audit logs record:
+- License issued
+- License revoked
+- License expired
+- License validation failure (attempt)
+
+Use STEP 6 AuditLogger.
+
+────────────────────────────────────────
+PHASE 6 — ADMIN UI (MINIMAL, READ-ONLY)
+────────────────────────────────────────
+Admin pages (minimal):
+- /bsadm/tenants
+- /bsadm/licenses
+
+Capabilities:
+- View only
+- No editing UI yet
+- Seed-based data OK
+
+Protect by permissions:
+- admin.tenants.view
+- admin.licenses.view
+
+Menu entries gated by:
+- Feature flag: admin.licensing
+
+────────────────────────────────────────
+PHASE 7 — DOCS & FUTURE EXTENSION
+────────────────────────────────────────
+Create docs:
+- docs/tenancy.md
+- docs/licensing.md
+
+Explain:
+- Why tenancy exists even before SaaS
+- Why licensing is enforced centrally
+- How runtime export will later consume license token
+- What is intentionally NOT implemented yet
+
+────────────────────────────────────────
+DELIVERABLES (MANDATORY)
+────────────────────────────────────────
+1) List of files created/modified (exact paths)
+2) Full code or diffs for:
+   - Tenant model + migrations
+   - License model + migrations
+   - TenantContext service
+   - LicenseTokenService
+   - RequireValidLicense middleware
+   - Minimal admin controllers/routes
+   - Docs
+3) Commands to run:
+   - php artisan migrate
+   - php artisan db:seed (if any)
+4) Verification checklist:
+   - Tenant resolves correctly
+   - License token can be generated and verified
+   - Invalid token fails validation
+   - Audit logs recorded
+
+STOP CONDITIONS
+- If any STEP 1–6 prerequisite is missing → STOP and report BLOCKERS.
+- If something risks breaking core → STOP and propose safer alternative.
+
+Now begin with PHASE 0 readiness scan, then proceed sequentially.
+

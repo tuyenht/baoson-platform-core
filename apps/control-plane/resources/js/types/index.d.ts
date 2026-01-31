@@ -14,6 +14,7 @@ export interface User {
     name: string;
     email: string;
     email_verified_at?: string;
+    two_factor_enabled?: boolean;
 }
 
 export type PageProps<
@@ -26,8 +27,17 @@ export type PageProps<
         prefix: string;
         routes: {
             dashboard: string;
+            usersIndex: string;
+            auditLogsIndex: string;
             login: string;
             loginStore: string;
+            twoFactorChallenge: string;
+            twoFactorChallengeStore: string;
+            twoFactorEnable: string;
+            twoFactorConfirm: string;
+            twoFactorDisable: string;
+            twoFactorRecovery: string;
+            twoFactorSettings: string;
             logout: string;
             passwordRequest: string;
             passwordEmail: string;
@@ -39,11 +49,18 @@ export type PageProps<
     };
     auth?: {
         user: User | null;
+        roles: string[];
+        permissions: string[];
     };
     flash?: {
         status?: string | null;
         error?: string | null;
+        recoveryCodes?: string[] | null;
     };
+    /**
+     * Inertia validation errors (when server responds with 422 for form submissions).
+     */
+    errors?: Record<string, string>;
     social?: {
         googleEnabled: boolean;
         facebookEnabled: boolean;

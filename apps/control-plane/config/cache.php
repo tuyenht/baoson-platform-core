@@ -2,6 +2,14 @@
 
 use Illuminate\Support\Str;
 
+$appEnv = (string) env('APP_ENV', 'production');
+$redisEnabled = filter_var(env('REDIS_ENABLED', false), FILTER_VALIDATE_BOOL);
+$defaultCacheStore = match ($appEnv) {
+    'testing' => 'array',
+    'local', 'development' => 'file',
+    default => $redisEnabled ? 'redis' : 'file',
+};
+
 return [
 
     /*
@@ -15,7 +23,11 @@ return [
     |
     */
 
-    'default' => env('CACHE_STORE', 'database'),
+    // Best-practice defaults by environment (overrideable via CACHE_STORE):
+    // - local/dev: file (fast, no extra infra)
+    // - testing: array (fastest, no I/O)
+    // - staging/prod: redis (scalable, best performance)
+    'default' => env('CACHE_STORE', $defaultCacheStore),
 
     /*
     |--------------------------------------------------------------------------

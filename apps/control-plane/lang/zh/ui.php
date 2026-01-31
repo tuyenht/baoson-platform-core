@@ -1,0 +1,26 @@
+<?php
+
+return [
+    // UI translations used by React via generated resources/js/locales/translations.json
+    // Namespace: auth.*
+    'auth' => [
+        'welcome' => '系统登录',
+        'email_label' => '账号',
+        'password_label' => '密码',
+        'email_placeholder' => 'your-name@gmail.com',
+        'password_placeholder' => '••••••••',
+        'forgot_password' => '忘记密码？',
+        'sign_in' => '登录',
+        'processing' => '处理中...',
+        'or_continue' => '快捷登录',
+        'terms' => '条款',
+        'privacy' => '隐私',
+        'login_with_google' => '使用Google登录',
+        'login_with_facebook' => '使用Facebook登录',
+        'google_login_not_enabled' => 'Google登录未在ENV中启用',
+        'facebook_login_not_enabled' => 'Facebook登录未在ENV中启用',
+        'socialite_not_installed' => 'Social登录已通过ENV启用，但服务器未安装laravel/socialite。',
+    ],
+];
+
+

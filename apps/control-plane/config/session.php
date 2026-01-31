@@ -2,6 +2,14 @@
 
 use Illuminate\Support\Str;
 
+$appEnv = (string) env('APP_ENV', 'production');
+$redisEnabled = filter_var(env('REDIS_ENABLED', false), FILTER_VALIDATE_BOOL);
+$defaultSessionDriver = match ($appEnv) {
+    'testing' => 'array',
+    'local', 'development' => 'file',
+    default => $redisEnabled ? 'redis' : 'file',
+};
+
 return [
 
     /*
@@ -18,7 +26,11 @@ return [
     |
     */
 
-    'driver' => env('SESSION_DRIVER', 'database'),
+    // Best-practice defaults by environment (overrideable via SESSION_DRIVER):
+    // - local/dev: file (fast, no extra infra)
+    // - testing: array (fastest, no I/O)
+    // - staging/prod: redis (scalable, best performance)
+    'driver' => env('SESSION_DRIVER', $defaultSessionDriver),
 
     /*
     |--------------------------------------------------------------------------
@@ -169,7 +181,8 @@ return [
     |
     */
 
-    'secure' => env('SESSION_SECURE_COOKIE'),
+    // Secure cookies should be enabled on HTTPS. Default auto-detect from APP_URL.
+    'secure' => env('SESSION_SECURE_COOKIE', Str::startsWith((string) env('APP_URL', ''), 'https://')),
 
     /*
     |--------------------------------------------------------------------------
@@ -199,6 +212,8 @@ return [
     |
     */
 
+    // Recommended: "lax" for normal web apps (OAuth redirects still work).
+    // Use "strict" only if you fully understand the UX impact.
     'same_site' => env('SESSION_SAME_SITE', 'lax'),
 
     /*

@@ -1,119 +1,108 @@
-/**
- * Inter Font - Self-hosted (Variable Font)
- * Multi-language support: Inter (base) + NotoSansSC (Chinese) + NotoSansJP (Japanese)
- * Source: inter-font-kit
- */
+/* =========================================================
+   LOGICAL FONT FAMILY: UI
+   Inter (Latin + Vietnamese) + Noto Sans JP/SC (CJK)
+   ========================================================= */
 
-/* ===== Inter (Latin + Vietnamese) - Base font for all languages ===== */
+/* ---------- Latin NORMAL (Inter) ---------- */
 @font-face {
-    font-family: 'Inter';
-    src: url('/fonts/Inter-roman.woff2') format('woff2');
-    font-weight: 100 900;
-    font-style: normal;
-    font-display: swap;
-    /* Unicode range: Latin + Vietnamese (including diacritics U+0300-036F and Đồng symbol U+20AB) */
-    unicode-range: U+0000-00FF, U+0100-024F, U+0300-036F, U+1E00-1EFF, U+20AB;
-    /* Font metrics overrides for better rendering */
-    ascent-override: 90%;
-    descent-override: 22%;
-    line-gap-override: 0%;
-    size-adjust: 105%;
+  font-family: "UI";
+  src: url("/fonts/Inter-roman.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  /* Latin + Vietnamese + Đồng symbol */
+  unicode-range:
+    U+0000-00FF,
+    U+0100-024F,
+    U+0300-036F,
+    U+1E00-1EFF,
+    U+20AB;
+  /* Metrics tuning (giữ như cấu hình của anh) */
+  ascent-override: 90%;
+  descent-override: 22%;
+  line-gap-override: 0%;
+  size-adjust: 105%;
 }
 
+/* ---------- Latin ITALIC (Inter) ---------- */
 @font-face {
-    font-family: 'Inter';
-    src: url('/fonts/Inter-italic.woff2') format('woff2');
-    font-weight: 100 900;
-    font-style: italic;
-    font-display: swap;
-    /* Unicode range: Latin + Vietnamese */
-    unicode-range: U+0000-00FF, U+0100-024F, U+0300-036F, U+1E00-1EFF, U+20AB;
+  font-family: "UI";
+  src: url("/fonts/Inter-italic.woff2") format("woff2");
+  font-style: italic;
+  font-weight: 100 900;
+  font-display: swap;
+  unicode-range:
+    U+0000-00FF,
+    U+0100-024F,
+    U+0300-036F,
+    U+1E00-1EFF,
+    U+20AB;
 }
 
-/* ===== Noto Sans SC (Simplified Chinese) ===== */
+/* ---------- Chinese Simplified (Noto Sans SC – upright only) ---------- */
 @font-face {
-    font-family: 'Noto Sans SC';
-    src: url('/fonts/NotoSansSC.woff2') format('woff2');
-    font-weight: 200 900;
-    font-style: normal;
-    font-display: swap;
-    /* Unicode range: Chinese characters */
-    unicode-range: U+3000-303F, U+FF00-FFEF, U+4E00-9FFF;
+  font-family: "UI";
+  src: url("/fonts/NotoSansSC.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 200 900;
+  font-display: swap;
+  unicode-range:
+    U+3000-303F,
+    U+2E80-2FDF,
+    U+3400-4DBF,
+    U+4E00-9FFF,
+    U+FF00-FFEF;
 }
 
-/* Noto Serif SC (Optional for Chinese serif) */
+/* ---------- Japanese (Noto Sans JP – upright only) ---------- */
 @font-face {
-    font-family: 'Noto Serif SC';
-    src: url('/fonts/NotoSerifSC.woff2') format('woff2');
-    font-weight: 200 900;
-    font-style: normal;
-    font-display: swap;
-    /* Unicode range: Chinese characters */
-    unicode-range: U+3000-303F, U+FF00-FFEF, U+4E00-9FFF;
+  font-family: "UI";
+  src: url("/fonts/NotoSansJP.woff2") format("woff2");
+  font-style: normal;
+  font-weight: 200 900;
+  font-display: swap;
+  unicode-range:
+    U+3000-303F,
+    U+3040-309F,
+    U+30A0-30FF,
+    U+31F0-31FF,
+    U+4E00-9FFF,
+    U+FF00-FFEF;
 }
 
-/* ===== Noto Sans JP (Japanese) ===== */
-@font-face {
-    font-family: 'Noto Sans JP';
-    src: url('/fonts/NotoSansJP.woff2') format('woff2');
-    font-weight: 200 900;
-    font-style: normal;
-    font-display: swap;
-    /* Unicode range: Japanese characters (Hiragana, Katakana, Kanji) */
-    unicode-range: U+3000-303F, U+3040-309F, U+30A0-30FF, U+31F0-31FF, U+FF00-FFEF, U+4E00-9FFF;
+/* =========================================================
+   CSS VARIABLES – TYPOGRAPHY TOKENS
+   ========================================================= */
+
+:root {
+  /* UI font stack */
+  --font-ui: "UI",
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    "Helvetica Neue",
+    Arial,
+    "Apple Color Emoji",
+    "Segoe UI Emoji",
+    "Noto Color Emoji",
+    sans-serif;
+
+  /* Base weights */
+  --ui-weight: 400;
+  --ui-heading-weight: 700;
 }
 
-/* Noto Serif JP (Optional for Japanese serif) */
-@font-face {
-    font-family: 'Noto Serif JP';
-    src: url('/fonts/NotoSerifJP.woff2') format('woff2');
-    font-weight: 200 900;
-    font-style: normal;
-    font-display: swap;
-    /* Unicode range: Japanese characters */
-    unicode-range: U+3000-303F, U+3040-309F, U+30A0-30FF, U+31F0-31FF, U+FF00-FFEF, U+4E00-9FFF;
+/* Chinese headings need stronger weight */
+:lang(zh),
+:lang(zh-CN),
+:lang(zh-Hans),
+html[lang|="zh"] {
+  --ui-heading-weight: 800;
 }
 
-/* ===== Font Stack Configuration ===== */
-
-/* Default font stack (Inter for all languages) */
-html, body {
-    font-family:
-        'Inter',
-        system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-    font-synthesis: none; /* Prevent browser from synthesizing bold/italic */
-}
-
-/* Chinese (Simplified) - Priority: Noto Sans SC > Inter > system */
-html:lang(zh-CN), html:lang(zh-Hans), html:lang(zh) {
-    font-family:
-        'Noto Sans SC', /* Priority for Chinese */
-        'Inter',
-        system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-}
-
-/* Japanese - Priority: Noto Sans JP > Inter > system */
-html:lang(ja), html[lang|="ja"] {
-    font-family:
-        'Noto Sans JP', /* Priority for Japanese */
-        'Inter',
-        system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-}
-
-/* Typography helpers */
-b, strong {
-    font-weight: 700;
-}
-
-i, em {
-    font-style: italic;
-}
-
-/* Optional classes for explicit CJK serif usage */
-.cjk-serif, .cn-serif, .sc-serif {
-    font-family: 'Noto Serif SC', 'Noto Sans SC', 'Inter', serif;
-}
-
-.jp-serif {
-    font-family: 'Noto Serif JP', 'Noto Sans JP', 'Inter', serif;
+/* Safety: never fake bold/italic */
+html,
+body {
+  font-synthesis: none;
 }

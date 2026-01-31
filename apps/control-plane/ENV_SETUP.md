@@ -24,7 +24,7 @@ GOOGLE_CLIENT_ID=your-google-client-id-here
 GOOGLE_CLIENT_SECRET=your-google-client-secret-here
 # GOOGLE_REDIRECT_URL will be auto-generated as: {APP_URL}/{ADMIN_PREFIX}/oauth/google/callback
 # Uncomment and set manually if you need a custom redirect URL:
-# GOOGLE_REDIRECT_URL=http://localhost/bsadm/oauth/google/callback
+# GOOGLE_REDIRECT_URL=http://localhost:8000/bsadm/oauth/google/callback
 GOOGLE_STATELESS=false
 ```
 
@@ -41,7 +41,7 @@ FACEBOOK_CLIENT_ID=your-facebook-app-id-here
 FACEBOOK_CLIENT_SECRET=your-facebook-app-secret-here
 # FACEBOOK_REDIRECT_URL will be auto-generated as: {APP_URL}/{ADMIN_PREFIX}/oauth/facebook/callback
 # Uncomment and set manually if you need a custom redirect URL:
-# FACEBOOK_REDIRECT_URL=http://localhost/bsadm/oauth/facebook/callback
+# FACEBOOK_REDIRECT_URL=http://localhost:8000/bsadm/oauth/facebook/callback
 FACEBOOK_STATELESS=false
 ```
 
@@ -115,9 +115,13 @@ This is the **recommended setting** for traditional web applications.
    - Only set `GOOGLE_REDIRECT_URL` or `FACEBOOK_REDIRECT_URL` if you need a custom URL
    - **Keep `GOOGLE_STATELESS=false` and `FACEBOOK_STATELESS=false`** for web applications
 
-4. **Install Socialite (if not already installed):**
-   ```bash
-   composer require laravel/socialite
+4. **Socialite**
+   - `laravel/socialite` **đã có sẵn** trong `apps/control-plane/composer.json`.
+   - Nếu bạn vừa thay đổi dependencies, hãy chạy trong **external PowerShell**:
+   ```powershell
+   cd apps/control-plane
+   composer install --no-interaction
+   php artisan optimize:clear --no-interaction
    ```
 
 5. **Restart your server**
@@ -125,6 +129,7 @@ This is the **recommended setting** for traditional web applications.
 ## Notes
 
 - Replace `http://localhost` with your actual domain in production
+- If you run locally with `php artisan serve` default port `8000`, your redirect URI must include `:8000`
 - Make sure redirect URLs match exactly in both .env and OAuth provider settings
 - Default values: `AUTH_GOOGLE_ENABLED=true` and `AUTH_FACEBOOK_ENABLED=true` (can be set to `false` to disable)
 - **Stateless mode**: Only enable if building APIs or SPAs without server-side sessions

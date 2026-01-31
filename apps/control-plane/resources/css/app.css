@@ -1,4 +1,4 @@
-/* Import Inter Font - Self-hosted */
+/* Import Fonts (logical UI family) */
 @import './fonts.css';
 
 @import 'tailwindcss';
@@ -9,7 +9,10 @@
 @source "../**/*.ts";
 @source "../**/*.tsx";
 
-/* CSS Reset to match code mẫu exactly */
+/* =========================================================
+   CSS RESET – GIỮ NGUYÊN
+   ========================================================= */
+
 * {
     box-sizing: border-box;
 }
@@ -17,23 +20,36 @@
 html {
     font-size: 14px; /* Base font size - match code mẫu */
     line-height: 1.5; /* 21px / 14px = 1.5 */
+
+    /* ✅ USE LOGICAL FONT FAMILY */
+    font-family: var(--font-ui);
+    font-weight: var(--ui-weight);
+
+    font-synthesis: none; /* Prevent browser from synthesizing bold/italic */
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
-html, body {
+html,
+body {
     margin: 0;
     padding: 0;
     overflow-x: hidden;
-    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-    font-synthesis: none; /* Prevent browser from synthesizing bold/italic */
 }
 
+/* Body inherits font from html */
 body {
     background: #0f172a;
     font-size: 14px;
     line-height: 21px;
+    font: inherit;
 }
 
-/* Match "lumina-auth---modern-login-system" visuals */
+/* =========================================================
+   MATCH "lumina-auth---modern-login-system" VISUALS
+   ========================================================= */
+
 @keyframes gradient {
   0% { background-position: 0% 50%; }
   50% { background-position: 100% 50%; }
@@ -51,10 +67,15 @@ body {
   -webkit-backdrop-filter: blur(40px);
   border: 1px solid rgba(255, 255, 255, 1);
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+
   /* Override Tailwind padding to match code mẫu exactly */
   padding: 35px !important; /* Match code mẫu: 35px instead of 40px (p-10) */
   border-radius: 21px !important; /* Match code mẫu: 21px instead of 24px (rounded-3xl) */
 }
+
+/* =========================================================
+   FORM OVERRIDES – GIỮ NGUYÊN
+   ========================================================= */
 
 /* Override input padding to match code mẫu */
 input[type="email"],

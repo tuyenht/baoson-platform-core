@@ -1,0 +1,26 @@
+<?php
+
+return [
+    // UI translations used by React via generated resources/js/locales/translations.json
+    // Namespace: auth.*
+    'auth' => [
+        'welcome' => 'System Login',
+        'email_label' => 'Account',
+        'password_label' => 'Password',
+        'email_placeholder' => 'your-name@gmail.com',
+        'password_placeholder' => '••••••••',
+        'forgot_password' => 'Forgot password?',
+        'sign_in' => 'Sign In',
+        'processing' => 'Processing...',
+        'or_continue' => 'Quick Login',
+        'terms' => 'Terms',
+        'privacy' => 'Privacy',
+        'login_with_google' => 'Login with Google',
+        'login_with_facebook' => 'Login with Facebook',
+        'google_login_not_enabled' => 'Google login is not enabled in ENV',
+        'facebook_login_not_enabled' => 'Facebook login is not enabled in ENV',
+        'socialite_not_installed' => 'Social login is enabled via ENV but server has not installed laravel/socialite.',
+    ],
+];
+
+

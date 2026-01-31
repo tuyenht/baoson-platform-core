@@ -82,6 +82,12 @@ export function LocaleProvider({
         // Instant UI update
         setLocaleState(newLocale);
 
+        // Write cookie immediately so next request (e.g. login submit) can use correct server locale
+        // even if the async session write hasn't completed yet.
+        if (typeof document !== 'undefined') {
+            document.cookie = `locale=${newLocale}; path=/; samesite=lax`;
+        }
+
         // Clear previous timer if exists
         if (saveTimerRef.current) {
             clearTimeout(saveTimerRef.current);

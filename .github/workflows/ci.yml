@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [ "**" ]
+  pull_request:
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.2"
+          tools: composer:v2
+
+      - name: Setup Node + pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node (cache)
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+
+      - name: Install JS dependencies (workspace)
+        run: pnpm install --frozen-lockfile
+
+      - name: Install PHP dependencies (control-plane)
+        working-directory: apps/control-plane
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: PHP lint (Pint)
+        working-directory: apps/control-plane
+        run: composer run lint --no-interaction
+
+      - name: PHP tests
+        working-directory: apps/control-plane
+        run: php artisan test --no-interaction
+
+      - name: Frontend lint
+        run: pnpm --filter control-plane run lint
+
+      - name: Frontend typecheck
+        run: pnpm --filter control-plane run typecheck
+
+      - name: Frontend build
+        run: pnpm --filter control-plane run build
+
+

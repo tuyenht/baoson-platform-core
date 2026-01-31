@@ -10,10 +10,11 @@ type LoginForm = {
     email: string;
     password: string;
     remember: boolean;
+    locale: string;
 };
 
 export default function Login() {
-    const { admin, flash, social } = usePage<PageProps>().props;
+    const { admin, flash, social, errors: pageErrors } = usePage<PageProps>().props;
     const { locale: contextLocale } = useLocale();
     const { t } = useI18n();
     
@@ -35,11 +36,28 @@ export default function Login() {
         email: '',
         password: '',
         remember: true,
+        locale: currentLocale,
     });
+
+    // Keep form locale in sync so backend messages are localized correctly.
+    useEffect(() => {
+        setData('locale', currentLocale);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [currentLocale]);
+
+    const alertMessage =
+        flash?.error ||
+        errors.email ||
+        errors.password ||
+        pageErrors?.email ||
+        pageErrors?.password ||
+        (Object.values(errors)[0] as string | undefined) ||
+        (pageErrors ? (Object.values(pageErrors)[0] as string | undefined) : undefined) ||
+        null;
 
     function submit(e: FormEvent) {
         e.preventDefault();
-        post(route(loginStore), { preserveScroll: true });
+        post(route(loginStore), { preserveScroll: true, preserveState: true });
     }
 
     return (
@@ -52,13 +70,6 @@ export default function Login() {
                         {t('auth.welcome')}
                     </h2>
                 </div>
-
-                {/* Flash messages - hidden by default, only show when needed (not in code mẫu) */}
-                {flash?.error && (
-                    <div className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-800">
-                        {flash.error}
-                    </div>
-                )}
 
                 {flash?.status && (
                     <div className="mb-4 rounded-xl bg-green-50 px-4 py-3 text-sm text-green-800">
@@ -121,28 +132,60 @@ export default function Login() {
                         </div>
                     </div>
 
-                    {/* Submit Button - Enhanced style when processing */}
-                    <button 
-                        type="submit" 
+                    {/* Alert banner (match mẫu: ngay trước nút submit) */}
+                    {alertMessage && (
+                        <div className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-800 transition-all duration-300">
+                            {alertMessage}
+                        </div>
+                    )}
+
+                    {/* Submit Button - Match reference login-system */}
+                    <button
+                        type="submit"
                         disabled={processing}
                         className={`
-                            w-full py-3.5 rounded-xl font-semibold text-[15px] shadow-lg
-                            flex items-center justify-center gap-2 transition-all duration-200 mt-2
-                            ${processing 
-                                ? 'bg-blue-50 text-blue-400 cursor-not-allowed shadow-blue-500/10' 
-                                : 'bg-blue-600 text-white hover:bg-blue-700 hover:-translate-y-0.5 cursor-pointer shadow-blue-500/20 active:scale-[0.98]'}
+                            w-full py-3 md:py-3.5 rounded-xl font-semibold text-[15px]
+                            shadow-lg shadow-blue-500/20
+                            flex items-center justify-center gap-2 transition-all duration-200 mt-1 md:mt-2
+                            ${processing
+                                ? 'bg-blue-700 text-white/90 cursor-wait scale-[0.98] shadow-inner'
+                                : 'bg-blue-600 text-white hover:bg-blue-700 hover:-translate-y-0.5'}
                         `}
                     >
                         {processing ? (
                             <>
-                                <div className="w-5 h-5 border-2 border-blue-400 border-t-transparent rounded-full animate-spin"></div>
-                                <span className="opacity-75">{t('auth.processing')}</span>
+                                <svg
+                                    className="animate-spin h-5 w-5 text-white"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    fill="none"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <circle
+                                        className="opacity-25"
+                                        cx="12"
+                                        cy="12"
+                                        r="10"
+                                        stroke="currentColor"
+                                        strokeWidth="4"
+                                    ></circle>
+                                    <path
+                                        className="opacity-75"
+                                        fill="currentColor"
+                                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                    ></path>
+                                </svg>
+                                <span>{t('auth.processing')}</span>
                             </>
                         ) : (
                             <>
                                 <span>{t('auth.sign_in')}</span>
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth="2"
+                                        d="M14 5l7 7m0 0l-7 7m7-7H3"
+                                    />
                                 </svg>
                             </>
                         )}

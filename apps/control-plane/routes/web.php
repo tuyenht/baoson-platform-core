@@ -6,7 +6,12 @@ use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\OAuthController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
+use App\Http\Controllers\Auth\TwoFactorChallengeController;
+use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\LocaleController;
+use App\Http\Controllers\Security\TwoFactorController;
+use App\Enums\Permission as P;
 
 $adminPrefix = config('admin.prefix', 'bsadm');
 $adminRouteName = config('admin.route_name', 'bsadm.');
@@ -27,11 +32,24 @@ Route::get('/', function () use ($adminPrefix) {
 Route::prefix($adminPrefix)
     ->name($adminRouteName)
     ->group(function () {
+        // Setup route (must be accessible without auth)
+        Route::middleware([\App\Http\Middleware\RequireSetup::class])->group(function () {
+            Route::get('/setup', [\App\Http\Controllers\Setup\SetupController::class, 'create'])
+                ->name('setup');
+            Route::post('/setup', [\App\Http\Controllers\Setup\SetupController::class, 'store'])
+                ->name('setup.store');
+        });
+
         Route::middleware('guest')->group(function () {
             Route::get('/login', [AuthenticatedSessionController::class, 'create'])
                 ->name('login');
             Route::post('/login', [AuthenticatedSessionController::class, 'store'])
                 ->name('login.store');
+
+            Route::get('/two-factor/challenge', [TwoFactorChallengeController::class, 'create'])
+                ->name('two-factor.challenge');
+            Route::post('/two-factor/challenge', [TwoFactorChallengeController::class, 'store'])
+                ->name('two-factor.challenge.store');
 
             Route::get('/forgot-password', [PasswordResetLinkController::class, 'create'])
                 ->name('password.request');
@@ -52,11 +70,40 @@ Route::prefix($adminPrefix)
         });
 
         Route::middleware('auth')->group(function () {
-    Route::get('/', function () {
-        return Inertia::render('Dashboard');
-            })->name('dashboard');
+            Route::get('/', function () {
+                return Inertia::render('Dashboard');
+            })
+                ->middleware('can:'.P::AdminDashboardView->value)
+                ->name('dashboard');
+
+            Route::get('/users', [UserController::class, 'index'])
+                ->middleware('can:'.P::AdminUsersView->value)
+                ->name('users.index');
+
+            Route::get('/audit-logs', [AuditLogController::class, 'index'])
+                ->middleware('can:'.P::AdminAuditView->value)
+                ->name('audit-logs.index');
+
+            // Example: role-based guard (in addition to permission-based "can:" guards)
+            Route::get('/rbac', function () {
+                return Inertia::render('Admin/Rbac');
+            })
+                ->middleware('role:super_admin')
+                ->name('rbac');
 
             Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
                 ->name('logout');
+
+            // Security: 2-step verification (available for all authenticated users)
+            Route::get('/security/two-factor', [TwoFactorController::class, 'show'])
+                ->name('security.two-factor');
+            Route::post('/security/two-factor/enable', [TwoFactorController::class, 'enable'])
+                ->name('security.two-factor.enable');
+            Route::post('/security/two-factor/confirm', [TwoFactorController::class, 'confirm'])
+                ->name('security.two-factor.confirm');
+            Route::post('/security/two-factor/disable', [TwoFactorController::class, 'disable'])
+                ->name('security.two-factor.disable');
+            Route::post('/security/two-factor/recovery-codes', [TwoFactorController::class, 'regenerateRecoveryCodes'])
+                ->name('security.two-factor.recovery');
         });
 });

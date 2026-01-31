@@ -1,0 +1,63 @@
+# Cac bien moi truong loi (Control Plane)
+#
+# Muc tieu:
+# - Tat ca khoa quan trong phai co trong .env / .env.example
+# - Co ghi chu gia tri khuyen nghi theo moi truong
+#
+# Goi y:
+# - Chay script: apps/control-plane/update-env-core.ps1 de tu them/cap nhat khoa vao .env + .env.example
+
+# =========================
+# Session/Cache auto-defaults
+# =========================
+# Optional flag: staging/prod có Redis thì bật, không có thì để false/không set.
+REDIS_ENABLED=false
+
+# =========================
+# Password pepper (tuy chon, khuyen nghi production)
+# =========================
+# - Neu set pepper: moi password se duoc hash/verify theo pepper (server-side).
+# - Pepper rotation: set PREVIOUS de doi pepper khong downtime (login se accept pepper cu va rehash sang pepper moi).
+AUTH_PASSWORD_PEPPER=
+AUTH_PASSWORD_PEPPER_PREVIOUS=
+
+# If true: fail-fast nếu thiếu AUTH_PASSWORD_PEPPER.
+# Recommended: production=true, local/testing=false.
+AUTH_PASSWORD_PEPPER_REQUIRED=false
+
+# =========================
+# Tenancy scaffold (disabled by default)
+# =========================
+# Enable multi-tenant context (core-ready). Default false (single-tenant).
+TENANCY_ENABLED=false
+
+# Resolution strategy:
+# - subdomain: {tenant}.yourdomain.com
+# - header: send header X-Tenant: tenant_key
+TENANCY_STRATEGY=subdomain
+TENANCY_HEADER=X-Tenant
+
+# =========================
+# 2FA hardening (OTP challenge throttling)
+# =========================
+TWO_FACTOR_CHALLENGE_MAX_ATTEMPTS=5
+TWO_FACTOR_CHALLENGE_DECAY_SECONDS=60
+
+# =========================
+# Login throttling (email + password)
+# =========================
+LOGIN_MAX_ATTEMPTS=5
+LOGIN_DECAY_SECONDS=60
+
+# =========================
+# Audit retention
+# =========================
+AUDIT_LOG_RETENTION_DAYS=90
+
+# =========================
+# Scheduler heartbeat (ops readiness)
+# =========================
+CORE_SCHEDULER_HEARTBEAT_TTL_SECONDS=3600
+CORE_SCHEDULER_HEARTBEAT_MAX_AGE_SECONDS=300
+
+

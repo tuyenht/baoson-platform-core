@@ -5,25 +5,35 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "i18n:export": "php artisan i18n:export",
+    "rbac:export-permissions": "php artisan rbac:export-permissions",
+    "build": "php artisan i18n:export && php artisan rbac:export-permissions && tsc && vite build",
     "preview": "vite preview",
-    "lint": "echo \"Lint to be configured\"",
+    "lint": "eslint resources/js --max-warnings=0",
+    "lint:fix": "eslint resources/js --fix",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
     "@inertiajs/react": "^2.3.3",
+    "qrcode": "^1.5.4",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
     "ziggy-js": "^2.6.0"
   },
   "devDependencies": {
+    "@eslint/js": "^9.20.0",
     "@tailwindcss/vite": "^4.0.0",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
+    "@types/qrcode": "^1.5.5",
     "@vitejs/plugin-react": "^5.1.2",
     "axios": "^1.7.4",
+    "eslint": "^9.20.0",
+    "eslint-plugin-react": "^7.37.4",
+    "eslint-plugin-react-hooks": "^5.1.0",
     "laravel-vite-plugin": "^1.2.0",
     "tailwindcss": "^4.0.0",
+    "typescript-eslint": "^8.25.0",
     "typescript": "^5.9.3",
     "vite": "^6.0.11"
   }
